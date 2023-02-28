@@ -151,11 +151,9 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
            self.info_box("Word not found", f"The word '{word}' wasn't found in any articles")
 
     def latest_scrape(self):
-        date, check = self.check_latest_scrape()
+        date = self.check_latest_date()
         date = date.strftime("%Y-%m-%d")
         message = "Latest scrape was {}\n".format(date)
-        if check:
-            message += "Need to scrape today!!\n"
         self.info_box("Latest Scrape", message)
 
     def scrape_news(self):

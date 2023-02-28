@@ -26,21 +26,11 @@ class Scrape(Database):
             'Accept-Language': 'en-US,en;q=0.9',
             'Pragma': 'no-cache'}
 
-    def check_latest_scrape(self):
-        self.date_list, self.check = self.add_current_date()
-        return self.date_list[0], self.check
-
     def go(self):
-        self.check_latest_scrape()
-        if self.check:
-            self.websites_lists = self.get_all_websites()
-            if self.check_if_same_day():
-                self.scrape_webbsites()
-        else:
-            return "Already scraped todad\n"
+        self.websites_lists = self.get_all_websites()
+        self.date_list, self.check = self.add_current_date()
+        self.scrape_webbsites()
         return f"Scraping for today just finished {self.date_list[0]}\n"
-
-        
 
     def scrape_webbsites(self):
         ###
@@ -51,13 +41,6 @@ class Scrape(Database):
                 self.webbsite_dic[website_str]()
             else:
                 self.scrape_other_website()
-
-    def check_if_same_day(self):
-        dates_lists = self.get_dates()
-        for date_list in dates_lists:
-            if date_list[0] == datetime.today().date():
-                return False
-        return True
 
     def text_to_words(self, text):
         # Remove punctuation
