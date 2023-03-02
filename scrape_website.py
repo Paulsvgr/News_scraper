@@ -5,7 +5,7 @@ import time
 import string
 import requests
 import re
-from News_scraper.News_scraper.db import *
+from db import *
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
