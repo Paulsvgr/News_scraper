@@ -97,6 +97,12 @@ class Database():
                 website = Websites(website=website_name, website_url=website_url)
                 session.add(website)
                 return f"{website_name} added to the database.", True
+            
+    def check_latest_date(self):
+        with self.session_scope() as session:
+            # Check if a record with the current date already exists
+            dates = session.query(Dates).all()
+            return dates[-1].date
 
     def add_current_date(self):
         with self.session_scope() as session:

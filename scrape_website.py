@@ -5,7 +5,7 @@ import time
 import string
 import requests
 import re
-from db import *
+from News_scraper.News_scraper.db import *
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
@@ -27,10 +27,27 @@ class Scrape(Database):
             'Pragma': 'no-cache'}
 
     def go(self):
-        self.websites_lists = self.get_all_websites()
         self.date_list, self.check = self.add_current_date()
-        self.scrape_webbsites()
+        if self.check:
+            self.websites_lists = self.get_all_websites()
+            if self.check_if_same_day():
+                self.scrape_webbsites()
+        else:
+            return "Already scraped todad\n"
         return f"Scraping for today just finished {self.date_list[0]}\n"
+
+    def get_response(self, url):
+        try:
+            response = requests.get(url, headers=self.headers)
+        except requests.exceptions.RequestException:
+            print(f"Couldn't get any response from {url}")
+        else:
+            # Check that the request was successful
+            if response.status_code == 200:
+                
+                # Create a BeautifulSoup object from the response content
+                soup = BeautifulSoup(response.content, "html.parser")
+                return soup
 
     def scrape_webbsites(self):
         ###
@@ -41,6 +58,13 @@ class Scrape(Database):
                 self.webbsite_dic[website_str]()
             else:
                 self.scrape_other_website()
+
+    def check_if_same_day(self):
+        dates_lists = self.get_dates()
+        for date_list in dates_lists:
+            if date_list[0] == datetime.today().date():
+                return False
+        return True
 
     def text_to_words(self, text):
         # Remove punctuation
@@ -62,45 +86,29 @@ class Scrape(Database):
 
 
     def scrap_url_huffpost(self, url):
-        try:
-            response = requests.get(url, headers=self.headers)
-        except requests.exceptions.RequestException:
-            print(f"Couldn't get any response from '{url}'")
-        else:
-            # Check that the request was successful
-            if response.status_code == 200:
-                article_text = ""
-                # Create a BeautifulSoup object from the response content
-                soup = BeautifulSoup(response.content, "html.parser")
-                texts = soup.find_all("div",{"class":"primary-cli cli cli-text"})
-                for text in texts:
-                    article_text += text.text+ "\n"
-                return article_text
+        soup = self.get_response(url)
+        article_text = ""
+        texts = soup.find_all("div",{"class":"primary-cli cli cli-text"})
+        for text in texts:
+            article_text += text.text+ "\n"
+        return article_text
 
     def scrape_huffpost(self):
         page_nb = 1
         next_page = True
 
         while next_page:
-            try:
-                response = requests.get(f"https://www.huffpost.com/news/?page={page_nb}", headers=self.headers)
-            except requests.exceptions.RequestException:
-                print(f"Couldn't get any response from 'https://www.huffpost.com/news/?page={page_nb}'")
-            else:
-                # Check that the request was successful
-                if response.status_code == 200:
-                    # Create a BeautifulSoup object from the response content
-                    soup = BeautifulSoup(response.content, "html.parser")
-                    articles = soup.find_all("a",{"class":"card__headline card__headline--long"})
-                    for article in articles:
-                        url = article["href"]
-                        url_id, check = self.add_url(url, self.webbsite)
-                        if check:
-                            text = self.scrap_url_huffpost(url)
-                            if text:
-                                words_freq = self.text_to_words(text)
-                                self.add_words_to_url(words_freq, url_id)
-                        self.add_date_to_url(self.date_list[1], url_id)
+            soup = self.get_response(f"https://www.huffpost.com/news/?page={page_nb}")
+            articles = soup.find_all("a",{"class":"card__headline card__headline--long"})
+            for article in articles:
+                url = article["href"]
+                url_id, check = self.add_url(url, self.webbsite)
+                if check:
+                    text = self.scrap_url_huffpost(url)
+                    if text:
+                        words_freq = self.text_to_words(text)
+                        self.add_words_to_url(words_freq, url_id)
+                self.add_date_to_url(self.date_list[1], url_id)
             print(f"                     -----------------{page_nb}--------------")
             page_nb += 1
             nexts = soup.find_all("a",{"class":"pagination__next-link"})
@@ -109,60 +117,36 @@ class Scrape(Database):
                     next_page = False
 
     def scrap_url_bbc(self, url):
-        try:
-            response = requests.get(url, headers=self.headers)
-        except requests.exceptions.RequestException:
-            print(f"Couldn't get any response from '{url}'")
-        else:
-            # Check that the request was successful
-            if response.status_code == 200:
-                article_text = ""
-                # Create a BeautifulSoup object from the response content
-                soup = BeautifulSoup(response.content, "html.parser")
-                texts = soup.find_all("div",{"class":"ssrcss-11r1m41-RichTextComponentWrapper ep2nwvo0"})
-                for text in texts:
-                    article_text += text.text + "\n"
-                return article_text
+        soup = self.get_response(url)
+        article_text = ""
+        texts = soup.find_all("div",{"class":"ssrcss-11r1m41-RichTextComponentWrapper ep2nwvo0"})
+        for text in texts:
+            article_text += text.text + "\n"
+        return article_text
 
     def scrape_bbc(self):
-        try:
-            response = requests.get(f"https://www.bbc.com/news", headers=self.headers)
-        except requests.exceptions.RequestException:
-            print(f"Couldn't get any response from 'https://www.bbc.com/news'")
-        else:
-            # Check that the request was successful
-            if response.status_code == 200:
-                
-                # Create a BeautifulSoup object from the response content
-                soup = BeautifulSoup(response.content, "html.parser")
-                articles = soup.find_all("a",{"class":"gs-c-promo-heading gs-o-faux-block-link__overlay-link gel-pica-bold nw-o-link-split__anchor"})
-                for article in articles:
-                    url = "https://www.bbc.com/" + article["href"]
-                    url_id, check = self.add_url(url, self.webbsite)
-                    if check:
-                        text = self.scrap_url_bbc(url)
-                        if text:
-                            words_freq = self.text_to_words(text)
-                            self.add_words_to_url(words_freq, url_id)
-                    self.add_date_to_url(self.date_list[1], url_id)
+        soup = self.get_response("https://www.bbc.com/news")
+        articles = soup.find_all("a",{"class":"gs-c-promo-heading gs-o-faux-block-link__overlay-link gel-pica-bold nw-o-link-split__anchor"})
+        for article in articles:
+            url = "https://www.bbc.com/" + article["href"]
+            url_id, check = self.add_url(url, self.webbsite)
+            if check:
+                text = self.scrap_url_bbc(url)
+                if text:
+                    words_freq = self.text_to_words(text)
+                    self.add_words_to_url(words_freq, url_id)
+            self.add_date_to_url(self.date_list[1], url_id)
                        
     def scrap_url_appnews(self, url):
-        try:
-            response = requests.get(url, headers=self.headers)
-        except requests.exceptions.RequestException:
-            print(f"Couldn't get any response from '{url}'")
-        else:
-            # Check that the request was successful
-            if response.status_code == 200:
-                article_text = ""
-                # Create a BeautifulSoup object from the response content
-                soup = BeautifulSoup(response.content, "html.parser")
-                articles = soup.find("div",{"class":"Article"})
-                if articles:
-                    texts = articles.find_all("p")
-                    for text in texts:
-                        article_text += text.text + "\n"
-                    return article_text
+        soup = self.get_response(url)
+        article_text = ""
+
+        articles = soup.find("div",{"class":"Article"})
+        if articles:
+            texts = articles.find_all("p")
+            for text in texts:
+                article_text += text.text + "\n"
+            return article_text
 
     def scrape_appnews(self):
         # initialize the driver and load the page
@@ -196,34 +180,20 @@ class Scrape(Database):
                         self.add_words_to_url(words_freq, url_id)
                 self.add_date_to_url(self.date_list[1], url_id)
 
-    def scrape_other_url(self):
-        pass
+    def scrape_other_url(self, url):
+        soup = self.get_response(url)
+
 
     def scrape_other_website(self):
-        try:
-            response = requests.get(self.webbsite_url, headers=self.headers)
-        except requests.exceptions.RequestException:
-            print(f"Couldn't get any response from {self.webbsite_url}")
-        else:
-            # Check that the request was successful
-            if response.status_code == 200:
-                
-                # Create a BeautifulSoup object from the response content
-                soup = BeautifulSoup(response.content, "html.parser")
-                urls = soup.find_all(href=re.compile(self.webbsite_url))
-                for url in urls:
-                    url_id, check = self.add_url(url, self.webbsite)
-                    if check:
-                        text = self.scrape_other_url(url)
-                        if text:
-                            words_freq = self.text_to_words(text)
-                            self.add_words_to_url(words_freq, url_id)
-                    self.add_date_to_url(self.date_list[1], url_id)
+        soup = self.get_response(self.webbsite_url)
+        urls = soup.find_all(href=re.compile(self.webbsite_url))
+        for url in urls:
+            url_id, check = self.add_url(url, self.webbsite)
+            if check:
+                text = self.scrape_other_url(url)
+                if text:
+                    words_freq = self.text_to_words(text)
+                    self.add_words_to_url(words_freq, url_id)
+            self.add_date_to_url(self.date_list[1], url_id)
 
 
-
-
-#if text:
-#    words = self.check_if_wors_in_text(text)
-#    for word in words:
-#        selfto(word, url_id)
