@@ -87,11 +87,12 @@ class Scrape(Database):
 
     def scrap_url_huffpost(self, url):
         soup = self.get_response(url)
-        article_text = ""
-        texts = soup.find_all("div",{"class":"primary-cli cli cli-text"})
-        for text in texts:
-            article_text += text.text+ "\n"
-        return article_text
+        if soup:
+            article_text = ""
+            texts = soup.find_all("div",{"class":"primary-cli cli cli-text"})
+            for text in texts:
+                article_text += text.text+ " "
+            return article_text
 
     def scrape_huffpost(self):
         page_nb = 1
@@ -99,54 +100,58 @@ class Scrape(Database):
 
         while next_page:
             soup = self.get_response(f"https://www.huffpost.com/news/?page={page_nb}")
-            articles = soup.find_all("a",{"class":"card__headline card__headline--long"})
+            if soup:
+                articles = soup.find_all("a",{"class":"card__headline card__headline--long"})
+                for article in articles:
+                    url = article["href"]
+                    url_id, check = self.add_url(url, self.webbsite)
+                    if check:
+                        text = self.scrap_url_huffpost(url)
+                        if text:
+                            words_freq = self.text_to_words(text)
+                            self.add_words_to_url(words_freq, url_id)
+                    self.add_date_to_url(self.date_list[1], url_id)
+                print(f"                     -----------------{page_nb}--------------")
+                page_nb += 1
+                nexts = soup.find_all("a",{"class":"pagination__next-link"})
+                for next in nexts:
+                    if not next.get("href"):
+                        next_page = False
+
+    def scrap_url_bbc(self, url):
+        soup = self.get_response(url)
+        if soup:
+            article_text = ""
+            texts = soup.find_all("div",{"class":"ssrcss-11r1m41-RichTextComponentWrapper ep2nwvo0"})
+            for text in texts:
+                article_text += text.text + " "
+            return article_text
+
+    def scrape_bbc(self):
+        soup = self.get_response("https://www.bbc.com/news")
+        if soup:
+            articles = soup.find_all("a",{"class":"gs-c-promo-heading gs-o-faux-block-link__overlay-link gel-pica-bold nw-o-link-split__anchor"})
             for article in articles:
-                url = article["href"]
+                url = "https://www.bbc.com/" + article["href"]
                 url_id, check = self.add_url(url, self.webbsite)
                 if check:
-                    text = self.scrap_url_huffpost(url)
+                    text = self.scrap_url_bbc(url)
                     if text:
                         words_freq = self.text_to_words(text)
                         self.add_words_to_url(words_freq, url_id)
                 self.add_date_to_url(self.date_list[1], url_id)
-            print(f"                     -----------------{page_nb}--------------")
-            page_nb += 1
-            nexts = soup.find_all("a",{"class":"pagination__next-link"})
-            for next in nexts:
-                if not next.get("href"):
-                    next_page = False
-
-    def scrap_url_bbc(self, url):
-        soup = self.get_response(url)
-        article_text = ""
-        texts = soup.find_all("div",{"class":"ssrcss-11r1m41-RichTextComponentWrapper ep2nwvo0"})
-        for text in texts:
-            article_text += text.text + "\n"
-        return article_text
-
-    def scrape_bbc(self):
-        soup = self.get_response("https://www.bbc.com/news")
-        articles = soup.find_all("a",{"class":"gs-c-promo-heading gs-o-faux-block-link__overlay-link gel-pica-bold nw-o-link-split__anchor"})
-        for article in articles:
-            url = "https://www.bbc.com/" + article["href"]
-            url_id, check = self.add_url(url, self.webbsite)
-            if check:
-                text = self.scrap_url_bbc(url)
-                if text:
-                    words_freq = self.text_to_words(text)
-                    self.add_words_to_url(words_freq, url_id)
-            self.add_date_to_url(self.date_list[1], url_id)
                        
     def scrap_url_appnews(self, url):
         soup = self.get_response(url)
-        article_text = ""
+        if soup:
+            article_text = ""
 
-        articles = soup.find("div",{"class":"Article"})
-        if articles:
-            texts = articles.find_all("p")
-            for text in texts:
-                article_text += text.text + "\n"
-            return article_text
+            articles = soup.find("div",{"class":"Article"})
+            if articles:
+                texts = articles.find_all("p")
+                for text in texts:
+                    article_text += text.text + " "
+                return article_text
 
     def scrape_appnews(self):
         # initialize the driver and load the page
@@ -182,18 +187,25 @@ class Scrape(Database):
 
     def scrape_other_url(self, url):
         soup = self.get_response(url)
+        if soup:
+            article_text = ""
+            texts = soup.find_all("p")
+            for text in texts:
+                article_text += text.text + " "
+                return article_text
 
 
     def scrape_other_website(self):
         soup = self.get_response(self.webbsite_url)
-        urls = soup.find_all(href=re.compile(self.webbsite_url))
-        for url in urls:
-            url_id, check = self.add_url(url, self.webbsite)
-            if check:
-                text = self.scrape_other_url(url)
-                if text:
-                    words_freq = self.text_to_words(text)
-                    self.add_words_to_url(words_freq, url_id)
-            self.add_date_to_url(self.date_list[1], url_id)
+        if soup:
+            urls = soup.find_all(href=re.compile(self.webbsite_url))
+            for url in urls:
+                url_id, check = self.add_url(url, self.webbsite)
+                if check:
+                    text = self.scrape_other_url(url)
+                    if text:
+                        words_freq = self.text_to_words(text)
+                        self.add_words_to_url(words_freq, url_id)
+                self.add_date_to_url(self.date_list[1], url_id)
 
 
