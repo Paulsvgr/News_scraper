@@ -28,12 +28,8 @@ class Scrape(Database):
 
     def go(self):
         self.date_list, self.check = self.add_current_date()
-        if self.check:
-            self.websites_lists = self.get_all_websites()
-            if self.check_if_same_day():
-                self.scrape_webbsites()
-        else:
-            return "Already scraped todad\n"
+        self.websites_lists = self.get_all_websites()
+        self.scrape_webbsites()
         return f"Scraping for today just finished {self.date_list[0]}\n"
 
     def get_response(self, url):
