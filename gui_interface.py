@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QLineEdit
 from scrape_website import *
 from charts import *
