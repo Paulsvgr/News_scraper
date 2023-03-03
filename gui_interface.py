@@ -158,15 +158,13 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
         self.info_box("Latest Scrape", message)
 
     def scrape_news(self):
-        thread1 = threading.Thread(target=self.info_box("Scrape", self.go()))
-        thread2 = threading.Thread(target=self.uppdate_gui())
-
+        self.info_box("Scrape", self.go())
+        self.uppdate_gui()
+    
+    def scrape_news_background(self):
+        thread = threading.Thread(target=self.scrape_news())
         # Start the first thread
-        thread1.start()
-
-        # Wait for the first thread to complete before starting the second thread
-        thread1.join()
-        thread2.start()
+        thread.start()
         
     def func_list(self, my_list, title="List Item"):
 
