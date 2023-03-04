@@ -7,6 +7,9 @@ import threading
 from css import *
 
 class Menu(QtWidgets.QWidget, Scrape, Charts):
+    # This class displays a menu and let you scrape 
+    # Display statistics or list differant data from db
+
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -14,6 +17,10 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
         function_thread.start()
 
     def create_instances(self):
+        # This function is being runed in the background when starting the menu
+        # Loads the table that allows displaying charts
+        # Enable the charts buttons when done 
+
         self.enable_buttons(self.buttons_other)
         self.enable_buttons(self.buttons_scrape)
         self.creat_df()
@@ -21,10 +28,14 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
         
         
     def enable_buttons(self, buttons_list):
+        # Enable the buttons in the given list
+
         for button in buttons_list:
             button.setEnabled(True)
 
     def init_ui(self):
+        # Displays the layouts and the buttons
+
         self.setWindowTitle("News Scraper")
         # Set background color
         self.setStyleSheet("background-color: #F0F0F0;")
@@ -94,26 +105,10 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
                 background-color: #d5d5d5;
             }
         """
-        check_scrape_btn.setStyleSheet(button_style)
-        scrape_btn.setStyleSheet(button_style)
-        list_categories_btn.setStyleSheet(button_style)
-        list_words_btn.setStyleSheet(button_style)
-        add_category_btn.setStyleSheet(button_style)
-        add_word_btn.setStyleSheet(button_style)
-        add_website_btn.setStyleSheet(button_style)
-        list_urls_btn.setStyleSheet(button_style)
-        urls_from_date_btn.setStyleSheet(button_style)
-        chart_word_occurance_btn.setStyleSheet(button_style)
-        chart_random_word_occurance_btn.setStyleSheet(button_style)
-        chart_two_words_occurance_btn.setStyleSheet(button_style)
-        chart_word_percent_change_btn.setStyleSheet(button_style)
-        chart_two_words_percent_change_btn.setStyleSheet(button_style)
-        chart_website_cath_btn.setStyleSheet(button_style)
-        uppdate_gui_btn.setStyleSheet(button_style)
-        exit_btn.setStyleSheet(button_style)
 
         # Create layout
         layout = QtWidgets.QVBoxLayout()
+
         self.buttons_scrape = [check_scrape_btn, scrape_btn, list_categories_btn, list_words_btn,
                                  add_category_btn, add_word_btn, add_website_btn, list_urls_btn,
                                   urls_from_date_btn]
@@ -122,7 +117,9 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
                                  chart_two_words_percent_change_btn, chart_website_cath_btn]
         self.buttons_other = [ uppdate_gui_btn, exit_btn]
         layout.addStretch()
+
         for button in self.buttons_scrape + self.buttons_chart + self.buttons_other:
+            button.setStyleSheet(button_style)
             layout.addWidget(button)
             layout.addStretch()
             button.setEnabled(False)
@@ -132,6 +129,8 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
         self.setLayout(layout)
 
     def info_box(self, title, phrase):
+        # Displays an info box with given title and text
+
         QtWidgets.QMessageBox.information(
         self,
         title,
@@ -140,10 +139,15 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
         )
 
     def uppdate_gui(self):
+        # Uppdates the table displaying charts
+        ### make it run in the back
         self.creat_df() 
         self.info_box("Update Status", "Done!")
         
     def func_chart_any_word_occurance(self):
+        # Displays a window that allows inserting word for chart
+        # And displays chart
+
         word, ok = QInputDialog.getText(self, "Enter word", "Enter a random word to see its occurance:")
         check = self.check_if_found(word)
         if word and ok and check is not None:
@@ -152,21 +156,28 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
            self.info_box("Word not found", f"The word '{word}' wasn't found in any articles")
 
     def latest_scrape(self):
+        # Displayes the lattest added date in db
+
         date = self.check_latest_date()
         date = date.strftime("%Y-%m-%d")
         message = "Latest scrape was {}\n".format(date)
         self.info_box("Latest Scrape", message)
 
     def scrape_news(self):
+        # Starts scraping 
+
         self.info_box("Scrape", self.go())
         self.uppdate_gui()
     
     def scrape_news_background(self):
+        # Should make the scraping run in thre background
+
         thread = threading.Thread(target=self.scrape_news())
-        # Start the first thread
         thread.start()
         
     def func_list(self, my_list, title="List Item"):
+        # Displays a window with list of items and allows to select one
+        # Returns the items 
 
         dialog = QtWidgets.QDialog(self)
         dialog.setWindowTitle(title)
@@ -206,19 +217,22 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
                     return tree_model.itemData(selected_item)
                 my_list = [i[0] for i in my_list] 
                 return tree_model.itemData(selected_item)[0], int(my_list.index(tree_model.itemData(selected_item)[0])+1)
-                
         return None
 
     def func_list_categories(self):
+        # Displays list of categories
         self.func_list(self.get_all_categories(), title="List of categories")
 
     def func_list_words(self):
+        # Displays list of words
         self.func_list(self.get_searching_words(), title="List of found words from list cathegory ")
 
     def func_list_urls(self):
+        # Displays list of urls
         self.func_list(self.get_all_urls(), title="List of urls")
 
     def func_urls_from_date(self):
+        # Lets you choose date and then display list of url on chosen date
         dates = self.get_dates()
         dates = [[str(date[0].strftime("%Y-%m-%d")), date[1]] for date in dates]
         date_choice = self.func_list(dates, "Choose a date")
@@ -227,11 +241,13 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
             self.func_list(urls, title=f"List of urls from {date_choice}")
     
     def func_chart_word_occurance(self):
+        # Lets you choose a word and displays a chart about it
         word = self.func_list(self.get_searching_words(), "Choose a word")
         if word:
             self.chart_word_occurance(word[0])
 
     def func_chart_two_words_occurance(self):
+        # Lets you choose two word and displays a chart about them
         word1 = self.func_list(self.get_searching_words(), "Choose the fisrt word")
         if word1:
             word2 = self.func_list(self.get_searching_words(), "Choose the secound word")
@@ -239,11 +255,14 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
             self.chart_two_words_occurance(word1[0], word2[0])
 
     def func_chart_word_percent_change(self):
+        # Lets you choose a word and displays a chart about it
+
         word = self.func_list(self.get_searching_words(), "Choose a word")
         if word:
             self.chart_word_percent_change(word[0])
     
     def func_chart_two_words_percent_change(self):
+        # Lets you choose two word and displays a chart about them
         word1 = self.func_list(self.get_searching_words(), "Choose the fisrt word")
         if word1:
             word2 = self.func_list(self.get_searching_words(), "Choose the secound word")
@@ -251,9 +270,11 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
             self.chart_two_words_percent_change(word1[0], word2[0])
 
     def func_chart_website_cath(self):
+        # Displays a chart about all webbsites and their most appearent category
         self.chart_website_cath()
 
     def func_add_category(self):
+        # Lets the user add a cathergory
         cathegory, ok = QInputDialog.getText(self, "Add Category", "Enter a new category:")
         if ok and cathegory:
             status = self.add_news_category(cathegory)
@@ -263,6 +284,7 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
                 QMessageBox.warning(self, "Error", f"News category '{cathegory}' already exists.")
 
     def func_add_word(self):
+        # Lets the user add a word in a selected category
         cathegory_choice = self.func_list(self.get_all_categories(), "news category")
         if cathegory_choice:
             word_to_add, ok_pressed = QInputDialog.getText(self, "Add Word to Category", f"Enter the word you want to add to the category '{cathegory_choice[0]}':", QLineEdit.Normal, "")
@@ -274,6 +296,7 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
                     QMessageBox.warning(self, "Error", f"The word '{word_to_add}' already exists in a category", QMessageBox.Ok)
 
     def func_add_website(self):
+        # Lets the user add a wabbsite
         website_url, ok = QInputDialog.getText(self, "Add Website", "Enter the URL of the website/domain you want to scrape news from:")
         if ok:
             try:
@@ -300,7 +323,8 @@ class Menu(QtWidgets.QWidget, Scrape, Charts):
 
 
 if __name__ == '__main__':
-    app = QtWidgets.QApplication([])  # create QApplication instance
+    # create QApplication instance
+    app = QtWidgets.QApplication([])
     app.setStyleSheet("QWidget {background-color: #ffffff;}")
     
     # Set style sheet for all message boxes
@@ -308,7 +332,7 @@ if __name__ == '__main__':
 
     app.setStyleSheet(msg_box_style) 
 
-    menu = Menu()  # create Menu widget
-    menu.show()  # show the Menu widget
+    menu = Menu()
+    menu.show()
     sys.exit(app.exec_()) 
         
