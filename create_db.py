@@ -53,7 +53,6 @@ class Dates(Base):
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, nullable=False, default=datetime.today().date())
 
-# Define the words table
 class Words(Base):
     __tablename__ = 'words'
     id = Column(Integer, primary_key=True)
@@ -67,8 +66,6 @@ class Word_in_url(Base):
     count = Column(Integer, nullable=False, default=1)
     word = relationship('Words', cascade="all, delete", backref='word_in_url')
     url = relationship('URLs', cascade="all, delete", backref='word_in_url')
-
-
 
 # create tables
 Base.metadata.create_all(engine)
@@ -88,6 +85,8 @@ news_categories = {
     "Disaster": ["disaster", "emergency", "relief", "aid", "response", "natural", "hurricane", "earthquake", "tsunami"],
 }
 def create():
+    # Creates a db with all necessary tables
+
     Session = sessionmaker(bind=engine)
 
     with Session() as session:
@@ -137,6 +136,8 @@ def create():
         session.commit()
 
 def delet_data():
+    # Delet the existing db
+
     Session = sessionmaker(bind=engine)
 
     with Session() as session:
@@ -148,8 +149,3 @@ def delet_data():
         except:
             session.rollback()
 
-# Session = sessionmaker(bind=engine) 
-# # create a metadata object to represent your database schema
-# metadata = MetaData()
-# url_obj = URLs(url="", website_id=1)
-# session.add(url_obj)
