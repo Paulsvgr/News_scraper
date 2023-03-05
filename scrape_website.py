@@ -10,6 +10,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
 class Scrape(Database):
+    # Scrape news webbsite and feeds the db
+    
     def __init__(self) -> None:
         super().__init__()
         self.stop_words = set(stopwords.words('english'))

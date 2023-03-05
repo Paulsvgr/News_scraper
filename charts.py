@@ -7,22 +7,14 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 class Charts(Database):
+    # Reads fromthe db and creates dictionaries and df
+    # To easaly create charts
+
     def __init__(self) -> None:
         super().__init__()
 
-    @contextmanager
-    def session_scope(self):
-        try:
-            session = self.Session()
-            yield session
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            print(f"Error: {str(e)}")
-        finally:
-            session.close()
-
     def create_dic(self, column_key, column_value):
+        # creates dictionory from db table
         with self.session_scope() as session:
             dic = {}
             table = session.query(column_key, column_value).all()
@@ -31,6 +23,7 @@ class Charts(Database):
             return dic
 
     def create_dic_for_word_in_url(self):
+        # creates a dictionary from table word_in_url
         with self.session_scope() as session:
             dic = {}
             table = session.query(Word_in_url.url_id, Word_in_url.word_id, Word_in_url.count).all()
@@ -86,12 +79,12 @@ class Charts(Database):
             filtered_df = pd.concat(filtered_rows)
         else:                      
             filtered_df = pd.DataFrame()
-        # for main self.words_found = list(tdf_groupby_words.index)
         
         self.filtered_df =  filtered_df
         self.words_found = self.word_in_articles()
 
     def create_dic_word_category(self):
+        # creates a dictionary where the keys are the categories and the values their corresponding words
         new_c_id_new_c = self.create_dic(NewsCategory.news_category, NewsCategory.id)
         se_w_se_word_id = self.create_dic(Searching_words.id, Searching_words.word)
         word_id_new_c_id = self.create_dic(Words_cathegorized.word_id, Words_cathegorized.news_category_id)
@@ -104,8 +97,9 @@ class Charts(Database):
             self.word_categories[cathegory] = words
 
     def word_in_articles(self):
-        tdf_groupny_words = self.filtered_df.groupby("word").sum(numeric_only=True)
-        self.words_found = [[word, self.filtered_df[self.filtered_df["word"]==word]["category"].unique()[0]] for word in list(tdf_groupny_words.index)]
+        # returns a list of all the searching words found in all categories
+        tdf_groupby_words = self.filtered_df.groupby("word").sum(numeric_only=True)
+        self.words_found = [[word, self.filtered_df[self.filtered_df["word"]==word]["category"].unique()[0]] for word in list(tdf_groupby_words.index)]
         self.words_found.sort(key=lambda x: x[1])
         return self.words_found
 
@@ -125,9 +119,9 @@ class Charts(Database):
         plt.rcParams['figure.dpi'] = 100
 
     def calc_x_points(self):
+        # creates values to display on the x axis
         x_points = self.df["date"].unique()
         num_ticks = 5
-        # select a subset of dates to display
         if len(x_points) > num_ticks:
             x_points_display = x_points[::len(x_points)//num_ticks]
         else:
@@ -135,8 +129,8 @@ class Charts(Database):
         return x_points_display
     
     def chart_word_occurance(self, word):
+        # create chart of one word
         df_word = self.df[self.df["word"]==word].groupby(["date"]).sum(numeric_only=True)
-
 
         plt.plot(df_word.index, df_word['count'], color='b', label=f'{word}')
         plt.xlabel('Date')
@@ -157,6 +151,7 @@ class Charts(Database):
         plt.show()
 
     def chart_two_words_occurance(self, word1, word2): 
+        # creates charts of two words
         df_word1 = self.df[self.df["word"]==word1].groupby(["date"]).sum(numeric_only=True)
         df_word2 = self.df[self.df["word"]==word2].groupby(["date"]).sum(numeric_only=True)
 
@@ -209,10 +204,10 @@ class Charts(Database):
 
         # adjust the spacing between subplots
         plt.subplots_adjust(wspace=0.4)
-
         plt.show()
 
     def chart_word_percent_change(self, word):
+        # creates charts of one word based on percent chage over time
         df_word = self.df[self.df["word"]==word].groupby(["date"]).sum(numeric_only=True)
         df_word["count"] = (df_word["count"]/df_word.loc[df_word.index.min(), "count"]*100)-100
         x_points = self.calc_x_points()
@@ -232,6 +227,7 @@ class Charts(Database):
         plt.show()
 
     def chart_two_words_percent_change(self, word1, word2):
+        # creates charts of two words based on percent chage over time
         df_word1 = self.df[self.df["word"]==word1].groupby(["date"]).sum(numeric_only=True)
         df_word1["count"] = (df_word1["count"]/df_word1.loc[df_word1.index.min(), "count"]*100)-100
         df_word2 = self.df[self.df["word"]==word2].groupby(["date"]).sum(numeric_only=True)
@@ -254,9 +250,8 @@ class Charts(Database):
         plt.gcf().set_size_inches(15, 8)
         plt.show()
 
-
-
     def chart_website_cath(self): 
+        # creates charts displaying most founded categories in the webbsites
         dfs = {}
         for website in list(self.filtered_df["website"].unique()):
             mask = self.filtered_df["website"]==website
@@ -271,16 +266,13 @@ class Charts(Database):
             n_colors = len(dfs[list(dfs.keys())[0]])
             cmap = plt.get_cmap('tab20')
             colors = cmap(np.linspace(0, 1, n_colors))
-            # plot the chart for the i-th website
             axs[0,i].bar(dfs[df_i].index, dfs[df_i]['count'], color=colors)
             axs[0,i].set_title(f'{df_i}')
             axs[0,i].tick_params(axis='x', which='both', bottom=False, labelbottom=False)
-            # set the x-tick labels for the i-th chart
             if i == 0:
                 for j, category in enumerate(dfs[df_i].index):
                     patch = mpatches.Patch(color=colors[j], label=category)
                     patches.append(patch)
-            # apply the style to the chart
             self.style_chart()
 
         # add the legend to the chart
